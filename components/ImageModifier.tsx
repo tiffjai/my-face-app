@@ -45,9 +45,12 @@ const ImageModifier: React.FC<ImageModifierProps> = ({ image }) => {
   };
 
   return (
-    <div>
-      <div>
-        <label>Eye Size</label>
+    <div className="w-full max-w-md mx-auto p-4 space-y-6 bg-white rounded-lg shadow-sm">
+      <div className="space-y-2">
+        <div className="flex justify-between items-center">
+          <label className="text-sm font-medium text-gray-700">Eye Size</label>
+          <span className="text-sm text-gray-500">{eyeSize.toFixed(1)}x</span>
+        </div>
         <input
           type="range"
           min="0.5"
@@ -55,10 +58,14 @@ const ImageModifier: React.FC<ImageModifierProps> = ({ image }) => {
           step="0.1"
           value={eyeSize}
           onChange={handleEyeSizeChange}
+          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
         />
       </div>
-      <div>
-        <label>Face Size</label>
+      <div className="space-y-2">
+        <div className="flex justify-between items-center">
+          <label className="text-sm font-medium text-gray-700">Face Size</label>
+          <span className="text-sm text-gray-500">{faceSize.toFixed(1)}x</span>
+        </div>
         <input
           type="range"
           min="0.5"
@@ -66,9 +73,10 @@ const ImageModifier: React.FC<ImageModifierProps> = ({ image }) => {
           step="0.1"
           value={faceSize}
           onChange={handleFaceSizeChange}
+          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
         />
       </div>
-      <div className="mt-4">
+      <div className="mt-6">
         {isLoading && <p className="text-center">Processing...</p>}
         {error && <p className="text-red-500 text-center">{error}</p>}
         {modifiedImage && !isLoading && (
