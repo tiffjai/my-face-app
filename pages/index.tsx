@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import UploadImage from '../components/UploadImage';
 import ImageModifier from '../components/ImageModifier';
@@ -23,11 +23,13 @@ const Home: React.FC = () => {
 };
 
 const HomeContent: React.FC = () => {
+  const [image, setImage] = useState<string | null>(null);
+
   return (
     <div>
       <h1>Modify Your Image</h1>
-      <UploadImage />
-      <ImageModifier />
+      <UploadImage setImage={setImage} />
+      {image && <ImageModifier image={image} />}
     </div>
   );
 };
