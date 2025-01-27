@@ -19,13 +19,14 @@ export default async function handler(
   }
 
   try {
-    const { image, eyeSize } = req.body;
+    const { image, eyeSize, faceSize } = req.body;
     if (!image) {
       return res.status(400).json({ error: 'No image data provided' });
     }
 
-    if (typeof eyeSize !== 'number' || eyeSize < 0.5 || eyeSize > 2) {
-      return res.status(400).json({ error: 'Invalid eye size value' });
+    if (typeof eyeSize !== 'number' || eyeSize < 0.5 || eyeSize > 2 ||
+        typeof faceSize !== 'number' || faceSize < 0.5 || faceSize > 2) {
+      return res.status(400).json({ error: 'Invalid size values' });
     }
 
     const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
@@ -64,25 +65,67 @@ export default async function handler(
       return res.status(400).json({ error: 'No facial landmarks detected' });
     }
 
-    // Extract eye points
-    const leftEye = face.mesh.slice(36, 42).map((p) => ({ x: p[0], y: p[1] })) as Point[];
-    const rightEye = face.mesh.slice(42, 48).map((p) => ({ x: p[0], y: p[1] })) as Point[];
+    // Extract facial feature points
+    const leftUpperEyelid = face.mesh.slice(36, 40).map((p) => ({ x: p[0], y: p[1] })) as Point[];
+    const leftLowerEyelid = face.mesh.slice(40, 42).map((p) => ({ x: p[0], y: p[1] })) as Point[];
+    const rightUpperEyelid = face.mesh.slice(42, 46).map((p) => ({ x: p[0], y: p[1] })) as Point[];
+    const rightLowerEyelid = face.mesh.slice(46, 48).map((p) => ({ x: p[0], y: p[1] })) as Point[];
+    const leftIris = face.mesh.slice(474, 478).map((p) => ({ x: p[0], y: p[1] })) as Point[];
+    const rightIris = face.mesh.slice(469, 473).map((p) => ({ x: p[0], y: p[1] })) as Point[];
 
-    const leftEyeCenter = calculateCenter(leftEye);
-    const rightEyeCenter = calculateCenter(rightEye);
+    const leftIrisCenter = calculateCenter(leftIris);
+    const rightIrisCenter = calculateCenter(rightIris);
 
-    // Apply eye size transformations
-    const leftEyeBounds = calculateEyeBounds(leftEye);
-    const rightEyeBounds = calculateEyeBounds(rightEye);
+    // Calculate iris sizes
+    const leftIrisRadius = Math.max(
+      ...leftIris.map(p => 
+        Math.sqrt(Math.pow(p.x - leftIrisCenter.x, 2) + Math.pow(p.y - leftIrisCenter.y, 2))
+      )
+    );
+    const rightIrisRadius = Math.max(
+      ...rightIris.map(p => 
+        Math.sqrt(Math.pow(p.x - rightIrisCenter.x, 2) + Math.pow(p.y - rightIrisCenter.y, 2))
+      )
+    );
 
     // Create a new canvas for the modified image
     const outputCanvas = createCanvas(canvas.width, canvas.height);
     const outputCtx = outputCanvas.getContext('2d');
     outputCtx.drawImage(canvas, 0, 0);
 
-    // Scale and draw eyes
-    await scaleAndDrawEye(outputCtx, canvas, leftEyeBounds, leftEyeCenter, eyeSize);
-    await scaleAndDrawEye(outputCtx, canvas, rightEyeBounds, rightEyeCenter, eyeSize);
+    // First scale the irises
+    await scaleIris(
+      outputCtx,
+      canvas,
+      leftIrisCenter,
+      leftIrisRadius,
+      eyeSize * 1.2 // Increase iris size more than the overall eye
+    );
+    await scaleIris(
+      outputCtx,
+      canvas,
+      rightIrisCenter,
+      rightIrisRadius,
+      eyeSize * 1.2
+    );
+
+    // Then adjust eyelids to match
+    await adjustEyelids(
+      outputCtx,
+      leftUpperEyelid,
+      leftLowerEyelid,
+      leftIrisCenter,
+      leftIrisRadius,
+      eyeSize
+    );
+    await adjustEyelids(
+      outputCtx,
+      rightUpperEyelid,
+      rightLowerEyelid,
+      rightIrisCenter,
+      rightIrisRadius,
+      eyeSize
+    );
 
     const modifiedImageBuffer = outputCanvas.toBuffer('image/jpeg');
     const modifiedImageBase64 = `data:image/jpeg;base64,${modifiedImageBuffer.toString('base64')}`;
@@ -119,56 +162,95 @@ function calculateEyeBounds(points: Point[]) {
   };
 }
 
-// Scale and draw eye region centered on the eye
-async function scaleAndDrawEye(
+// Scale and draw iris
+async function scaleIris(
   ctx: import('canvas').CanvasRenderingContext2D,
   sourceCanvas: import('canvas').Canvas,
-  bounds: { x: number; y: number; width: number; height: number },
   center: Point,
+  radius: number,
   scale: number
 ) {
   try {
-    // Calculate dimensions based on eye size
-    const eyeWidth = bounds.width;
-    const eyeHeight = bounds.height;
-    const padding = Math.ceil(eyeWidth * 0.15); // Smaller padding, just 15% of eye width
-    
-    // Define the region to transform
-    const x = Math.floor(bounds.x - padding);
-    const y = Math.floor(bounds.y - padding);
-    const width = Math.ceil(eyeWidth + (padding * 2));
-    const height = Math.ceil(eyeHeight + (padding * 2));
+    const size = Math.ceil(radius * 3); // Larger area to ensure we capture the full iris
+    const x = Math.floor(center.x - size/2);
+    const y = Math.floor(center.y - size/2);
 
-    // Save the original state
-    ctx.save();
-    
-    // Create a temporary canvas for the eye region
-    const tempCanvas = createCanvas(width, height);
+    // Create temporary canvas for iris
+    const tempCanvas = createCanvas(size, size);
     const tempCtx = tempCanvas.getContext('2d');
-    
-    // Copy the eye region to temp canvas
+
+    // Copy iris region
     tempCtx.drawImage(
       sourceCanvas,
-      x, y, width, height,
-      0, 0, width, height
+      x, y, size, size,
+      0, 0, size, size
     );
 
-    // Calculate scale relative to eye center
-    const relativeScale = 1 + (scale - 1) * 0.6; // Reduce the scaling effect
-    const scaledWidth = Math.ceil(width * relativeScale);
-    const scaledHeight = Math.ceil(height * relativeScale);
-    
-    // Calculate offsets to maintain eye center position
-    const centerOffsetX = (scaledWidth - width) / 2;
-    const centerOffsetY = (scaledHeight - height) / 2;
+    // Create circular mask for iris
+    tempCtx.globalCompositeOperation = 'destination-in';
+    tempCtx.beginPath();
+    tempCtx.arc(size/2, size/2, radius, 0, Math.PI * 2);
+    tempCtx.fill();
+    tempCtx.globalCompositeOperation = 'source-over';
 
-    // Draw the scaled eye region back to the main canvas
+    // Scale and draw iris
+    const scaledSize = Math.ceil(size * scale);
+    const offset = (scaledSize - size) / 2;
+
+    ctx.save();
     ctx.drawImage(
       tempCanvas,
-      0, 0, width, height,
-      x - centerOffsetX, y - centerOffsetY, scaledWidth, scaledHeight
+      0, 0, size, size,
+      x - offset, y - offset, scaledSize, scaledSize
     );
+    ctx.restore();
+  } catch (error) {
+    console.error('Error in scaleIris:', error);
+    throw error;
+  }
+}
 
+// Adjust eyelids to match iris size
+async function adjustEyelids(
+  ctx: import('canvas').CanvasRenderingContext2D,
+  upperLid: Point[],
+  lowerLid: Point[],
+  irisCenter: Point,
+  irisRadius: number,
+  scale: number
+) {
+  try {
+    const scaledRadius = irisRadius * scale;
+    const radiusDiff = scaledRadius - irisRadius;
+    
+    // Create paths for the eyelids
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(upperLid[0].x, upperLid[0].y);
+    
+    // Adjust upper eyelid
+    for (let i = 1; i < upperLid.length; i++) {
+      const point = upperLid[i];
+      const dist = Math.sqrt(Math.pow(point.x - irisCenter.x, 2) + Math.pow(point.y - irisCenter.y, 2));
+      const factor = Math.max(0, 1 - dist / (irisRadius * 3));
+      const offset = radiusDiff * factor;
+      ctx.lineTo(point.x, point.y - offset);
+    }
+    
+    // Adjust lower eyelid
+    for (let i = lowerLid.length - 1; i >= 0; i--) {
+      const point = lowerLid[i];
+      const dist = Math.sqrt(Math.pow(point.x - irisCenter.x, 2) + Math.pow(point.y - irisCenter.y, 2));
+      const factor = Math.max(0, 1 - dist / (irisRadius * 3));
+      const offset = radiusDiff * factor;
+      ctx.lineTo(point.x, point.y + offset);
+    }
+    
+    ctx.closePath();
+    ctx.clip();
+    
+    // Draw the adjusted region
+    ctx.drawImage(ctx.canvas, 0, 0);
     ctx.restore();
   } catch (error) {
     console.error('Error in scaleAndDrawEye:', error);
