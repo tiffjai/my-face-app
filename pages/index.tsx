@@ -10,10 +10,10 @@ const Home: React.FC = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen bg-gradient-to-br from-accent via-background to-accent/50">
-        <div className="max-w-6xl mx-auto px-6 py-16">
+      <div className="h-screen overflow-hidden bg-gradient-to-br from-accent via-background to-accent/50">
+        <div className="max-w-6xl mx-auto px-6 py-8 h-full overflow-y-auto">
           <div className="text-center mb-16">
-            <h1 className="text-5xl md:text-6xl font-light tracking-tight text-primary mb-6">
+            <h1 className="text-4xl md:text-5xl font-light tracking-tight text-primary mb-6">
               Face <span className="font-normal bg-clip-text text-transparent bg-gradient-to-r from-primary via-primary/80 to-primary">Modifier</span>
             </h1>
             <p className="text-muted-foreground text-lg md:text-xl font-light max-w-2xl mx-auto leading-relaxed">
@@ -22,7 +22,7 @@ const Home: React.FC = () => {
             </p>
           </div>
           
-          <div className="max-w-5xl mx-auto space-y-10">
+          <div className="max-w-4xl mx-auto space-y-6">
             <UploadImage setImage={setImage} />
             {image && (
               <div className="transition-all duration-700 ease-in-out transform">

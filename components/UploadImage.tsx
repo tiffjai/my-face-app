@@ -10,6 +10,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
 
 interface Props {
   setImage: React.Dispatch<React.SetStateAction<string | null>>;
@@ -52,14 +53,14 @@ const UploadImage: React.FC<Props> = ({ setImage }) => {
   };
 
   return (
-    <Card className="bg-white/80 backdrop-blur-sm hover:shadow-lg transition-shadow duration-300">
+    <Card className="bg-white/80 backdrop-blur-sm hover:shadow-lg transition-shadow duration-300 max-h-[calc(100vh-2rem)] overflow-y-auto">
       <CardHeader>
         <CardTitle>Upload Portrait</CardTitle>
         <CardDescription>Select an image to begin the transformation</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <div className="flex flex-col items-center justify-center w-full h-40 cursor-pointer group">
+          <div className="flex flex-col items-center justify-center w-full h-32 cursor-pointer group">
             <Input
               type="file"
               onChange={handleImageChange}
@@ -69,13 +70,15 @@ const UploadImage: React.FC<Props> = ({ setImage }) => {
             />
             <label 
               htmlFor="image-upload" 
-              className="w-full h-full border-2 border-dashed rounded-lg flex flex-col items-center justify-center bg-accent/20 hover:bg-accent/30 transition-colors duration-300 cursor-pointer"
+              className="w-full h-full border-2 border-dashed rounded-lg flex flex-col items-center justify-center bg-background hover:bg-accent/5 transition-colors duration-300 cursor-pointer"
             >
               <svg className="w-8 h-8 text-muted-foreground mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              <p className="text-sm text-muted-foreground mb-1">Drag and drop your image here</p>
-              <p className="text-xs text-muted-foreground">or click to browse</p>
+              <p className="text-sm text-muted-foreground mb-1">Drag and drop your image here or</p>
+              <Button variant="secondary" size="sm" className="text-xs">
+                Choose File
+              </Button>
             </label>
           </div>
         </div>
@@ -84,15 +87,17 @@ const UploadImage: React.FC<Props> = ({ setImage }) => {
             <div className="grid grid-cols-2 gap-8">
               <div className="space-y-3">
                 <h3 className="text-sm font-medium">Original</h3>
-                <div className="relative rounded-lg overflow-hidden bg-accent/20">
-                  <img src={image} alt="Original Image" className="w-full h-auto object-contain" />
+                <div className="relative rounded-lg overflow-hidden bg-accent/20 h-[300px]">
+                  <img src={image} alt="Original Image" className="w-full h-full object-contain" />
                 </div>
               </div>
               
               <div className="space-y-3">
                 <h3 className="text-sm font-medium">Modified</h3>
                 {modifiedImage ? (
-                  <img src={modifiedImage} alt="Modified Image" className="w-full h-auto rounded-lg object-contain" />
+                  <div className="relative rounded-lg overflow-hidden bg-accent/20 h-[300px]">
+                    <img src={modifiedImage} alt="Modified Image" className="w-full h-full object-contain rounded-lg" />
+                  </div>
                 ) : error === 'No face detected' ? (
                   <Alert variant="destructive">
                     <AlertDescription>No face detected in the image</AlertDescription>

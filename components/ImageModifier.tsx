@@ -55,7 +55,7 @@ const ImageModifier: React.FC<ImageModifierProps> = ({ image }) => {
   };
 
   return (
-    <Card className="w-full max-w-3xl mx-auto bg-white/80 backdrop-blur-sm">
+    <Card className="w-full max-w-3xl mx-auto bg-white/80 backdrop-blur-sm max-h-[calc(100vh-2rem)] overflow-y-auto">
       <CardHeader>
         <CardTitle>Adjust Features</CardTitle>
         <CardDescription>Fine-tune facial features with precision</CardDescription>
@@ -128,8 +128,8 @@ const ImageModifier: React.FC<ImageModifierProps> = ({ image }) => {
             </Alert>
           )}
           {modifiedImage && !isLoading && (
-            <div className="rounded-lg overflow-hidden">
-              <img src={modifiedImage} alt="Modified" className="w-full h-auto" />
+            <div className="rounded-lg overflow-hidden bg-accent/20 h-[300px]">
+              <img src={modifiedImage} alt="Modified" className="w-full h-full object-contain" />
             </div>
           )}
         </div>
