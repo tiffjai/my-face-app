@@ -3,7 +3,7 @@ services:
     name: my-face-app
     env: node
     buildCommand: npm install && npm run build
-    startCommand: npm start
+    startCommand: npx serve@latest out
     envVars:
       - key: NODE_ENV
         value: production
