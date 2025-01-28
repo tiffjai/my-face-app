@@ -12,11 +12,8 @@ const nextConfig = {
     };
     return config;
   },
-  experimental: {
-    runtime: 'nodejs',
-  },
   images: {
-    domains: ['cdn.jsdelivr.net'],
+    unoptimized: true,
   },
 }
 

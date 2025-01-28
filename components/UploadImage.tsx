@@ -1,5 +1,8 @@
-import { useState } from 'react';
-import { createApi } from '@/utils/api';
+'use client';
+
+import { useState, useEffect } from 'react';
+import type { Human as HumanType, Config } from '@vladmandic/human';
+import * as Human from '@vladmandic/human';
 import {
   Card,
   CardContent,
@@ -18,38 +21,70 @@ interface Props {
 
 const UploadImage: React.FC<Props> = ({ setImage }) => {
   const [image, setLocalImage] = useState<string | null>(null);
-  const [modifiedImage, setModifiedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { modifyFace } = createApi();
+  const [human, setHuman] = useState<HumanType | null>(null);
+
+  useEffect(() => {
+    const initHuman = async () => {
+      const humanConfig: Partial<Config> = {
+        backend: 'webgl',
+        modelBasePath: 'https://cdn.jsdelivr.net/npm/@vladmandic/human/models/',
+        face: { enabled: true },
+      };
+      const newHuman = new Human.Human(humanConfig);
+      await newHuman.load();
+      setHuman(newHuman);
+    };
+    initHuman();
+  }, []);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      if (e.target?.result) {
-        const imageData = e.target.result as string;
-        setLocalImage(imageData);
-        setImage(imageData);
-        try {
-          setIsLoading(true);
-          setError(null);
-          const response = await modifyFace.mutateAsync({ 
-            image: imageData,
-            eyeSize: 1,
-            faceSize: 1
-          });
-          setModifiedImage(response);
-        } catch (err: any) {
-          setError(err.message || 'An error occurred');
-        } finally {
-          setIsLoading(false);
-        }
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const reader = new FileReader();
+      const imageData = await new Promise<string>((resolve, reject) => {
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            resolve(e.target.result as string);
+          } else {
+            reject(new Error('Failed to read file'));
+          }
+        };
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+
+      // Verify face detection works
+      if (!human) {
+        throw new Error('Face detection not initialized');
       }
-    };
-    reader.readAsDataURL(file);
+
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = imageData;
+      });
+
+      const result = await human.detect(img);
+      if (!result.face || result.face.length === 0) {
+        throw new Error('No face detected');
+      }
+
+      setLocalImage(imageData);
+      setImage(imageData);
+    } catch (err: any) {
+      console.error('Error processing image:', err);
+      setError(err.message || 'Failed to process image');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -84,34 +119,10 @@ const UploadImage: React.FC<Props> = ({ setImage }) => {
         </div>
         {image && (
           <div className="mt-6 space-y-6">
-            <div className="grid grid-cols-2 gap-8">
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium">Original</h3>
-                <div className="relative rounded-lg overflow-hidden bg-accent/20 h-[300px]">
-                  <img src={image} alt="Original Image" className="w-full h-full object-contain" />
-                </div>
-              </div>
-              
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium">Modified</h3>
-                {modifiedImage ? (
-                  <div className="relative rounded-lg overflow-hidden bg-accent/20 h-[300px]">
-                    <img src={modifiedImage} alt="Modified Image" className="w-full h-full object-contain rounded-lg" />
-                  </div>
-                ) : error === 'No face detected' ? (
-                  <Alert variant="destructive">
-                    <AlertDescription>No face detected in the image</AlertDescription>
-                  </Alert>
-                ) : isLoading ? (
-                  <div className="flex flex-col items-center justify-center h-full min-h-[200px] bg-accent/20 rounded-lg space-y-4">
-                    <Progress value={33} className="w-[60%]" />
-                    <p className="text-sm text-muted-foreground">Processing...</p>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center h-full min-h-[200px] bg-accent/20 rounded-lg">
-                    <p className="text-muted-foreground">Upload an image to see the magic</p>
-                  </div>
-                )}
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium">Original</h3>
+              <div className="relative rounded-lg overflow-hidden bg-accent/20 h-[300px]">
+                <img src={image} alt="Original Image" className="w-full h-full object-contain" />
               </div>
             </div>
             {error && error !== 'No face detected' && (
