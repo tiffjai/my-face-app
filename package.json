@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@radix-ui/react-progress": "^1.1.1",
+    "@radix-ui/react-slider": "^1.2.2",
     "@radix-ui/react-slot": "^1.1.1",
     "@shadcn/ui": "^0.0.4",
     "@tanstack/react-query": "^5.65.0",
@@ -21,7 +23,6 @@
     "image-js": "^0.36.0",
     "lucide-react": "^0.474.0",
     "next": "15.1.6",
-    "opencv.js": "^1.2.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^2.6.0",
