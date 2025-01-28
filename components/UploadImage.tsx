@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { createApi } from '@/utils/api';
-import { useMutation } from '@tanstack/react-query';
 import {
   Card,
   CardContent,
@@ -42,8 +41,8 @@ const UploadImage: React.FC<Props> = ({ setImage }) => {
             faceSize: 1
           });
           setModifiedImage(response);
-        } catch (error: any) {
-          setError(error.message);
+        } catch (err: any) {
+          setError(err.message || 'An error occurred');
         } finally {
           setIsLoading(false);
         }
@@ -59,7 +58,6 @@ const UploadImage: React.FC<Props> = ({ setImage }) => {
         <CardDescription>Select an image to begin the transformation</CardDescription>
       </CardHeader>
       <CardContent>
-        
         <div className="space-y-4">
           <div className="flex flex-col items-center justify-center w-full h-40 cursor-pointer group">
             <Input
